@@ -48,6 +48,10 @@ function detectDeadCode(compilation, options) {
 		}
 	}
 
+	if (options.delete && unusedFiles.length) {
+		removeFiles(unusedFiles);
+	}
+
 	if (unusedFiles.length > 0 || unusedExportMap.length > 0) {
 		if (options.failOnHint) {
 			process.exit(2);
@@ -194,6 +198,24 @@ function logUnusedFiles(unusedFiles) {
 
 function convertToUnixPath(path) {
 	return path.replace(/\\+/g, "/");
+}
+
+function removeFiles(filePaths) {
+	let exportPath = "deleteUnused.json";
+	let deleteFiles = [];
+	filePaths.forEach(path => {
+		let index = path.lastIndexOf(".");
+		// 由于到处ts类型的文件不会触发编译，固compilation.fileDependencies获取不到，导致误删
+		// 通过后缀,过滤出.ts文件手动处理
+		let ext = path.substr(index + 1);
+		if (ext !== "ts") {
+			deleteFiles.push(path);
+			fs.unlink(path);
+		}
+	});
+	if (deleteFiles.length > 0) {
+		exportResultToJSON(exportPath, deleteFiles, {});
+	}
 }
 
 module.exports = detectDeadCode;
